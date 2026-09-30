@@ -1,10 +1,20 @@
 # Project Management API
 
-API REST desenvolvida para gerenciamento de projetos e funcionários, como parte do desafio técnico de Backend Java da Orla Digital.
+A production-style REST API built with **Java 21** and **Spring Boot** for managing projects and employees with relational persistence.
 
-A aplicação permite cadastrar funcionários, cadastrar projetos associados a um ou mais funcionários e consultar os projetos com seus respectivos funcionários.
+The application supports:
 
-## Tecnologias
+- creating employees;
+- creating projects associated with one or more employees;
+- retrieving employees;
+- retrieving individual projects;
+- listing projects with their associated employees.
+
+This project focuses on clean backend design, explicit API contracts, relational data modeling, validation, automated testing, database versioning, and reproducible local infrastructure.
+
+---
+
+## Tech Stack
 
 - Java 21
 - Spring Boot 4.1.1
@@ -18,22 +28,29 @@ A aplicação permite cadastrar funcionários, cadastrar projetos associados a u
 - JUnit 5
 - Mockito
 - Testcontainers
+- OpenAPI / Swagger
 
-## Arquitetura
+---
 
-A aplicação segue uma separação em camadas:
+## Architecture
+
+The application follows a layered architecture:
 
 ```text
-controller
-    ↓
-service
-    ↓
-repository
-    ↓
-database
+HTTP Request
+     ↓
+Controller
+     ↓
+Service
+     ↓
+Repository
+     ↓
+JPA / Hibernate
+     ↓
+PostgreSQL
 ```
 
-A estrutura principal do projeto está organizada em:
+Main package structure:
 
 ```text
 src/main/java/com/brunacosta/projectmanagement
@@ -45,13 +62,15 @@ src/main/java/com/brunacosta/projectmanagement
 └── service
 ```
 
-Os DTOs são separados das entidades de persistência para evitar o acoplamento entre o contrato da API e o modelo do banco de dados.
+DTOs are kept separate from persistence entities so that the external API contract is not directly coupled to the database model.
 
-## Modelo de dados
+---
 
-Um projeto pode possuir vários funcionários e um funcionário pode participar de vários projetos.
+## Domain Model
 
-A relação N:N é representada no banco por uma tabela associativa:
+A project can contain multiple employees, and an employee can participate in multiple projects.
+
+The many-to-many relationship is represented by an explicit association table:
 
 ```text
 project
@@ -65,44 +84,55 @@ project_employee
 employee
 ```
 
-Tabelas:
+Database tables:
 
 - `project`
 - `employee`
 - `project_employee`
 
-A tabela `project_employee` utiliza a combinação de `project_id` e `employee_id` como chave primária.
+The `project_employee` table uses the combination of `project_id` and `employee_id` as its primary key.
 
-Também foram adicionadas restrições no banco para:
+Database constraints include:
 
-- CPF único;
-- e-mail único;
-- salário maior ou igual a zero;
-- integridade referencial entre projetos e funcionários.
+- unique CPF;
+- unique email;
+- salary greater than or equal to zero;
+- referential integrity between projects and employees.
 
-O schema é versionado pelo Flyway e o Hibernate utiliza `ddl-auto: validate`, deixando a responsabilidade pela evolução do banco nas migrations.
+The schema is versioned with **Flyway**, while Hibernate uses `ddl-auto: validate`, keeping schema evolution under explicit migration control.
 
-## Executando a aplicação
+---
 
-### Pré-requisitos
+## Running the Application
 
-É necessário possuir:
+### Prerequisites
+
+Make sure you have:
 
 - Java 21
 - Maven
-- Docker e Docker Compose
+- Docker
+- Docker Compose
 
-### 1. Configurar as variáveis de ambiente
+### 1. Configure environment variables
 
-O projeto possui um arquivo `.env.example`.
+The project provides a `.env.example` file.
 
-Crie uma cópia chamada `.env`:
+Create a local `.env` file:
+
+#### PowerShell
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-O arquivo deve possuir:
+#### Linux / macOS
+
+```bash
+cp .env.example .env
+```
+
+The file should contain:
 
 ```env
 POSTGRES_DB=project_management
@@ -110,25 +140,25 @@ POSTGRES_USER=project_user
 POSTGRES_PASSWORD=project_password
 ```
 
-> O arquivo `.env` está ignorado pelo Git e não deve ser versionado.
+> `.env` is ignored by Git and should not be committed.
 
-### 2. Subir o PostgreSQL
+### 2. Start PostgreSQL
 
-Na raiz do projeto:
+From the project root:
 
 ```bash
 docker compose up -d
 ```
 
-Para verificar o container:
+Check the container status:
 
 ```bash
 docker compose ps
 ```
 
-### 3. Configurar as variáveis para a aplicação
+### 3. Configure variables for the application
 
-No PowerShell:
+#### PowerShell
 
 ```powershell
 $env:POSTGRES_DB="project_management"
@@ -136,7 +166,7 @@ $env:POSTGRES_USER="project_user"
 $env:POSTGRES_PASSWORD="project_password"
 ```
 
-No Linux/macOS:
+#### Linux / macOS
 
 ```bash
 export POSTGRES_DB=project_management
@@ -144,27 +174,29 @@ export POSTGRES_USER=project_user
 export POSTGRES_PASSWORD=project_password
 ```
 
-### 4. Executar
+### 4. Run the application
 
 ```bash
 mvn spring-boot:run
 ```
 
-A aplicação ficará disponível em:
+The API will be available at:
 
 ```text
 http://localhost:8080
 ```
 
-## Endpoints
+---
 
-### Cadastrar funcionário
+## API Endpoints
+
+### Create Employee
 
 ```http
 POST /api/v1/employees
 ```
 
-Exemplo:
+Example request:
 
 ```json
 {
@@ -175,25 +207,25 @@ Exemplo:
 }
 ```
 
-Resposta esperada:
+Expected response:
 
 ```http
 201 Created
 ```
 
-### Consultar funcionário
+### Get Employee
 
 ```http
 GET /api/v1/employees/{id}
 ```
 
-### Cadastrar projeto
+### Create Project
 
 ```http
 POST /api/v1/projects
 ```
 
-Exemplo:
+Example request:
 
 ```json
 {
@@ -202,71 +234,75 @@ Exemplo:
 }
 ```
 
-Resposta esperada:
+Expected response:
 
 ```http
 201 Created
 ```
 
-### Consultar projeto
+### Get Project
 
 ```http
 GET /api/v1/projects/{id}
 ```
 
-### Listar projetos
+### List Projects
 
 ```http
 GET /api/v1/projects
 ```
 
-A resposta contém os projetos e seus respectivos funcionários.
+The response contains projects and their associated employees.
 
-## Validações e tratamento de erros
+---
 
-A API utiliza Bean Validation para validar os dados recebidos.
+## Validation and Error Handling
 
-Entre as validações implementadas estão:
+The API uses **Bean Validation** for request validation.
 
-- nome obrigatório;
-- CPF obrigatório com 11 dígitos;
-- e-mail válido;
-- salário obrigatório e não negativo;
-- funcionários informados no cadastro do projeto devem existir.
+Implemented validations include:
 
-A aplicação possui tratamento centralizado de exceções, retornando códigos HTTP adequados, incluindo:
+- required employee name;
+- required CPF with 11 digits;
+- valid email format;
+- required and non-negative salary;
+- employee IDs referenced by a project must exist.
 
-- `400 Bad Request` para dados inválidos;
-- `404 Not Found` para recursos inexistentes;
-- `409 Conflict` para conflitos de dados.
+Exceptions are handled centrally, producing consistent HTTP responses.
 
-## Testes
+Examples:
 
-Para executar todos os testes:
+- `400 Bad Request` — invalid request data;
+- `404 Not Found` — requested resource does not exist;
+- `409 Conflict` — data conflict such as unique-field violations.
+
+---
+
+## Testing
+
+Run the full test suite with:
 
 ```bash
 mvn test
 ```
 
-Os testes são divididos em dois níveis.
+### Unit Tests
 
-### Testes unitários
+Service-layer behavior is tested in isolation using **JUnit 5** and **Mockito**.
 
-As regras das camadas de serviço são testadas isoladamente utilizando JUnit 5 e Mockito.
+Covered scenarios include:
 
-São cobertos, entre outros cenários:
+- employee creation;
+- duplicate CPF validation;
+- duplicate email validation;
+- project creation with employees;
+- project creation with a non-existent employee.
 
-- cadastro de funcionário;
-- tentativa de cadastro com CPF duplicado;
-- tentativa de cadastro com e-mail duplicado;
-- cadastro de projeto com funcionários;
-- tentativa de associação com funcionário inexistente.
+### Integration Tests
 
-### Teste de integração
+Integration tests use **Testcontainers** to automatically start an isolated PostgreSQL 17 instance.
 
-O teste de integração utiliza Testcontainers para iniciar automaticamente uma instância descartável do PostgreSQL 17.
-
-Dessa forma, os testes exercitam em conjunto:
+The tests exercise the application stack together:
 
 ```text
 HTTP
@@ -284,56 +320,88 @@ Flyway
 PostgreSQL
 ```
 
-O banco utilizado pelos testes é independente do banco configurado para execução da aplicação.
+The integration-test database is independent from the database configured for normal application execution.
 
-Por isso, com o Docker disponível, os testes podem ser executados diretamente:
+With Docker available, the tests can be executed directly:
 
 ```bash
 mvn test
 ```
 
-sem a necessidade de configurar previamente as credenciais do PostgreSQL da aplicação.
+No manually configured PostgreSQL instance is required for the integration tests.
 
-## Decisões técnicas
+---
 
-### PostgreSQL em vez de banco em memória
+## Technical Decisions
 
-Foi utilizado PostgreSQL tanto na aplicação quanto nos testes de integração, evitando diferenças de comportamento que poderiam ocorrer ao utilizar um banco em memória.
+### PostgreSQL Instead of an In-Memory Database
 
-### Flyway para versionamento do banco
+PostgreSQL is used both by the application and by integration tests.
 
-A criação e evolução do schema são controladas através de migrations.
+This reduces the risk of database-specific behavior being hidden by differences between an in-memory database and the actual relational database used by the application.
 
-O Hibernate apenas valida se o modelo das entidades corresponde ao schema existente.
+### Flyway for Database Versioning
 
-### Relacionamento entre projetos e funcionários
+Database creation and evolution are controlled through versioned migrations.
 
-Como o relacionamento atualmente não possui atributos próprios, foi utilizado `@ManyToMany` no modelo JPA, mantendo uma tabela associativa explícita e normalizada no banco.
+Hibernate validates the entity model against the existing schema instead of creating or modifying the schema automatically.
 
-Caso futuramente a associação possua informações próprias, como função do funcionário no projeto, data de alocação ou carga horária, a tabela associativa poderá evoluir para uma entidade própria.
+### Project / Employee Relationship
 
-### BigDecimal para valores monetários
+The current relationship has no attributes of its own, so it is modeled with `@ManyToMany` while keeping an explicit normalized association table in the database.
 
-O salário é representado utilizando `BigDecimal`, evitando problemas de precisão associados a tipos de ponto flutuante.
+If the relationship later requires additional information — such as project role, allocation date, workload, or status — the association can evolve into a dedicated entity.
 
-### DTOs separados das entidades
+### BigDecimal for Monetary Values
 
-As entidades JPA não são expostas diretamente pela API. DTOs específicos são utilizados para entrada e saída de dados.
+Salary values are represented with `BigDecimal` to avoid precision issues associated with binary floating-point types.
 
-### Carregamento dos funcionários dos projetos
+### DTOs Separate from JPA Entities
 
-As consultas de projetos utilizam `EntityGraph` para carregar os funcionários necessários junto à consulta, evitando consultas adicionais durante a montagem da resposta.
+JPA entities are not exposed directly through the API.
 
+Dedicated request and response DTOs keep the HTTP contract independent from the persistence model and avoid unnecessary serialization coupling.
 
-## Documentação da API
+### Optimized Project Queries
 
-Com a aplicação em execução, a documentação interativa da API pode ser acessada através do Swagger UI:
+Project queries use `EntityGraph` when employee data is required.
 
-- [Swagger UI](http://localhost:8080/swagger-ui/index.html)
-- [OpenAPI JSON](http://localhost:8080/v3/api-docs)
+This makes the fetch strategy explicit for the use case and avoids unnecessary additional queries while keeping the relationship from being globally eager.
 
-O Swagger UI permite visualizar os contratos da API e executar requisições diretamente pela interface.
+---
 
-## Autor
+## API Documentation
 
-Bruna Costa
+With the application running, interactive API documentation is available through Swagger UI:
+
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI JSON: http://localhost:8080/v3/api-docs
+
+Swagger UI can be used to inspect the API contract and execute requests directly from the browser.
+
+---
+
+## What This Project Demonstrates
+
+This project showcases practical backend engineering with:
+
+- Java 21 and Spring Boot;
+- REST API design;
+- layered application architecture;
+- relational modeling with PostgreSQL;
+- JPA / Hibernate;
+- database migrations with Flyway;
+- request validation and centralized exception handling;
+- automated unit and integration testing;
+- Testcontainers-based infrastructure testing;
+- Docker Compose for reproducible local setup;
+- OpenAPI / Swagger documentation.
+
+---
+
+## Author
+
+**Bruna Costa**
+
+Senior Java Backend Developer  
+Java • Spring Boot • Microservices • REST APIs • PostgreSQL • Kafka • AWS
